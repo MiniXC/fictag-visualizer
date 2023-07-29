@@ -1,0 +1,3 @@
+[submodule "fictag-scraper"]
+	path = fictag-scraper
+	url = https://github.com/MiniXC/fictag-scraper
