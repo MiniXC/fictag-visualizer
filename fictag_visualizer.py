@@ -14,33 +14,35 @@ def str_to_id_list(s):
     if isinstance(s, int):
         return [s]
     if "+" in s:
-        return [int(x) for x in s.split("+")]
+        return set([int(x) for x in s.split("+") if x != ""])
     else:
         return [int(s)]
 
 # load data
-@st.cache_data
+#@st.cache_data
 def load_data():
     df = pd.read_csv('fictag-scraper/data/processed/canonical_fandoms.csv')
     return df
 
-@st.cache_data
+#@st.cache_data
 def load_general_tags():
     df = pd.read_csv('fictag-scraper/data/processed/tags/_general_tags.csv.gz')
     return df
 
-@st.cache_data
+#@st.cache_data
 def load_fandom_tags(fandom_id):
     df = pd.read_csv(f'fictag-scraper/data/processed/tags/{fandom_id}/tags.csv.gz')
     return df
 
-@st.cache_data
+#@st.cache_data
 def load_works(fandom_id):
-    work_path = Path(f'fictag-scraper/data/works/{fandom_id}')
+    work_path = Path(f'fictag-scraper/data/processed/works/{fandom_id}')
     # load all .csv files in the directory
-    df = pd.concat([pd.read_csv(f) for f in work_path.glob('*.csv')])
+    df = pd.concat([pd.read_csv(f) for f in work_path.glob('*.csv.gz')])
     df["general_tag_ids"] = df["general_tag_ids"].apply(str_to_id_list)
     df["fandom_tag_ids"] = df["fandom_tag_ids"].apply(str_to_id_list)
+    df["computed_general_tag_ids"] = df["computed_general_tag_ids"].apply(str_to_id_list)
+    df["computed_fandom_tag_ids"] = df["computed_fandom_tag_ids"].apply(str_to_id_list)
     return df
 
 df = load_data()
@@ -74,17 +76,22 @@ st.write(f'There are **{count:,}** works in the **{fandom}** fandom.')
 with st.spinner('Loading works...'):
     works = load_works(row['hash'].values[0])
 
+multiple_check = False
+
 with st.expander('Filter by tags'):
     # load tags
     general_tags = load_general_tags()
     fandom_tags = load_fandom_tags(row['hash'].values[0])
+
+    # add computed columns
+    add_computed = st.checkbox('Add computed columns')
 
     # allow user to select multiple tags
     general_tags_selected = st.multiselect('Select general tags', general_tags['tag'].unique())
     fandom_tags_selected = st.multiselect('Select fandom tags', fandom_tags['tag'].unique())
 
     # allow selecting "any" or "all" mode
-    mode = st.radio('Select mode', ['any', 'all'])
+    mode = st.radio('Select mode', ['any', 'all', 'multiple'])
 
     # filter works
     general_tag_ids = []
@@ -100,14 +107,56 @@ with st.expander('Filter by tags'):
     if len(general_tag_ids) != 0 or len(fandom_tag_ids) != 0:
         if mode == 'any':
             # any of the tags
-            general_filter = works['general_tag_ids'].apply(lambda x: any([tag in x for tag in general_tag_ids]))
-            fandom_filter = works['fandom_tag_ids'].apply(lambda x: any([tag in x for tag in fandom_tag_ids]))
-            works = works[general_filter | fandom_filter]
-        else:
+            if not add_computed:
+                general_filter = works['general_tag_ids'].apply(lambda x: any([ tag in x for tag in general_tag_ids]))
+                fandom_filter = works['fandom_tag_ids'].apply(lambda x: any([tag in x for tag in fandom_tag_ids]))
+                works = works[general_filter | fandom_filter]
+            else:
+                general_filter_comp = works['computed_general_tag_ids'].apply(lambda x: any([ tag in x for tag in general_tag_ids]))
+                fandom_filter_comp = works['computed_fandom_tag_ids'].apply(lambda x: any([tag in x for tag in fandom_tag_ids]))
+                general_filter = works['general_tag_ids'].apply(lambda x: any([ tag in x for tag in general_tag_ids]))
+                fandom_filter = works['fandom_tag_ids'].apply(lambda x: any([tag in x for tag in fandom_tag_ids]))
+                general_filter = general_filter | general_filter_comp
+                fandom_filter = fandom_filter | fandom_filter_comp
+                works = works[general_filter | fandom_filter]
+        elif mode == 'all':
             # all of the tags
-            general_filter = works['general_tag_ids'].apply(lambda x: all([tag in x for tag in general_tag_ids]))
-            fandom_filter = works['fandom_tag_ids'].apply(lambda x: all([tag in x for tag in fandom_tag_ids]))
-            works = works[general_filter & fandom_filter]
+            if not add_computed:
+                general_filter = works['general_tag_ids'].apply(lambda x: all([tag in x for tag in general_tag_ids]))
+                fandom_filter = works['fandom_tag_ids'].apply(lambda x: all([tag in x for tag in fandom_tag_ids]))
+                works = works[general_filter & fandom_filter]
+            else:
+                general_filter_comp = works['computed_general_tag_ids'].apply(lambda x: all([tag in x for tag in general_tag_ids]))
+                fandom_filter_comp = works['computed_fandom_tag_ids'].apply(lambda x: all([tag in x for tag in fandom_tag_ids]))
+                general_filter = works['general_tag_ids'].apply(lambda x: all([tag in x for tag in general_tag_ids]))
+                fandom_filter = works['fandom_tag_ids'].apply(lambda x: all([tag in x for tag in fandom_tag_ids]))
+                general_filter = general_filter | general_filter_comp
+                fandom_filter = fandom_filter | fandom_filter_comp
+                works = works[general_filter & fandom_filter]
+        multiple_check = st.checkbox('Show multiple tags')
+        if multiple_check:
+            # means multiple lines in the plot
+            if add_computed:
+                general_tags_l = []
+                fandom_tags_l = []
+                for _, row in works.iterrows():
+                    # set union
+                    general_tags_l.append(set(row['general_tag_ids']) | set(row['computed_general_tag_ids']))
+                    fandom_tags_l.append(set(row['fandom_tag_ids']) | set(row['computed_fandom_tag_ids']))
+                works['general_tag_ids'] = general_tags_l
+                works['fandom_tag_ids'] = fandom_tags_l
+            general_str = works['general_tag_ids'].apply(lambda x: " + ".join(sorted([general_tags.loc[tag]['tag'] for tag in x if tag in general_tag_ids])))
+            fandom_str = works['fandom_tag_ids'].apply(lambda x: " + ".join(sorted([fandom_tags.loc[tag]['tag'] for tag in x if tag in fandom_tag_ids])))
+            works['group'] = general_str + " + " + fandom_str
+            remove_fandom = st.checkbox('Remove fandom from group', value=True)
+            def remove_lead(x):
+                if fandom in x and remove_fandom:
+                    x = x.replace(f'({fandom})', "")
+                if x.startswith(" + "):
+                    return x[3:]
+                else:
+                    return x
+            works['group'] = works['group'].apply(remove_lead)
 
     st.write(f'There are **{len(works):,}** works that match the selected tags.')
 
@@ -148,11 +197,22 @@ with st.expander('Show works over time'):
 
 
     # group by date
-    works = works.groupby('date').agg({aggregation: 'sum'}).reset_index()
+    if multiple_check:
+        st.write(works)
+        works = works.groupby(['date', 'group']).agg({aggregation: 'sum'}).reset_index()
+    else:
+        works = works.groupby('date').agg({aggregation: 'sum'}).reset_index()
 
     # plot
     title = f'Number of {aggregation} per {time_period} for {fandom}'
     if len(general_tag_ids) != 0 or len(fandom_tag_ids) != 0:
         title += ' (filtered by {} tags)'.format(fandom_tags_selected+general_tags_selected)
-    fig = px.line(works, x="date", y=aggregation, title=title)
+
+    st.write(mode)
+
+    if multiple_check:
+        st.write(works)
+        fig = px.line(works, x="date", y=aggregation, title=title, line_group='group', color='group', markers=True)
+    else:
+        fig = px.line(works, x="date", y=aggregation, title=title)
     st.plotly_chart(fig, use_container_width=True)
