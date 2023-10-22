@@ -25,45 +25,29 @@ def str_to_id_list(s):
 
 
 # load data
-<<<<<<< HEAD
-@st.cache_data
-=======
 # @st.cache_data
->>>>>>> 6d3944a22ee0ccce0ee122a3de0418a7a49a2318
 def load_data():
     df = conn.read("fictag-dataset/canonical_fandoms.csv", input_format="csv", ttl=600)
     # only keep the top 700 fandoms
     df = df.head(700)
     return df
 
-<<<<<<< HEAD
-@st.cache_data
-=======
 
 # @st.cache_data
->>>>>>> 6d3944a22ee0ccce0ee122a3de0418a7a49a2318
 def load_general_tags():
     df = conn.read("fictag-dataset/tags/_general_tags.csv", input_format="csv", ttl=600)
     return df
 
-<<<<<<< HEAD
-@st.cache_data
-=======
 
 # @st.cache_data
->>>>>>> 6d3944a22ee0ccce0ee122a3de0418a7a49a2318
 def load_fandom_tags(fandom_id):
     df = conn.read(
         f"fictag-dataset/tags/{fandom_id}/tags.csv", input_format="csv", ttl=600
     )
     return df
 
-<<<<<<< HEAD
-@st.cache_data
-=======
 
 # @st.cache_data
->>>>>>> 6d3944a22ee0ccce0ee122a3de0418a7a49a2318
 def load_works(fandom_id):
     work_path = f"fictag-dataset/works/{fandom_id}"
     # load all .csv files in the directory
@@ -105,13 +89,15 @@ else:
     fandom_url = quote_plus(fandom)
     st.experimental_set_query_params(fandom=fandom_url)
 
+
 def remove_lead(x):
     if fandom in x:
-        x = x.replace(f'({fandom})', "")
+        x = x.replace(f"({fandom})", "")
     if x.startswith(" + "):
         return x[3:]
     else:
         return x
+
 
 row = df[df["tag"] == fandom]
 count = row["count"].values[0]
@@ -137,11 +123,7 @@ with st.expander("Filter by tags"):
     )
 
     # allow selecting "any" or "all" mode
-<<<<<<< HEAD
-    mode = st.radio('Select mode', ['any', 'all'])
-=======
     mode = st.radio("Select mode", ["any", "all", "multiple"])
->>>>>>> 6d3944a22ee0ccce0ee122a3de0418a7a49a2318
 
     # filter works
     general_tag_ids = []
@@ -176,21 +158,6 @@ with st.expander("Filter by tags"):
         multiple_check = st.checkbox("Show multiple tags")
         if multiple_check:
             # means multiple lines in the plot
-<<<<<<< HEAD
-            if add_computed:
-                general_tags_l = []
-                fandom_tags_l = []
-                for _, row in works.iterrows():
-                    # set union
-                    general_tags_l.append(set(row['general_tag_ids']) | set(row['computed_general_tag_ids']))
-                    fandom_tags_l.append(set(row['fandom_tag_ids']) | set(row['computed_fandom_tag_ids']))
-                works['general_tag_ids'] = general_tags_l
-                works['fandom_tag_ids'] = fandom_tags_l
-            general_str = works['general_tag_ids'].apply(lambda x: " + ".join(sorted([general_tags.loc[tag]['tag'] for tag in x if tag in general_tag_ids])))
-            fandom_str = works['fandom_tag_ids'].apply(lambda x: " + ".join(sorted([fandom_tags.loc[tag]['tag'] for tag in x if tag in fandom_tag_ids])))
-            works['group'] = general_str + " + " + fandom_str
-            works['group'] = works['group'].apply(remove_lead)
-=======
             general_str = works["general_tag_ids"].apply(
                 lambda x: " + ".join(
                     sorted(
@@ -223,7 +190,6 @@ with st.expander("Filter by tags"):
                     return x[3:]
                 else:
                     return x
->>>>>>> 6d3944a22ee0ccce0ee122a3de0418a7a49a2318
 
             works["group"] = works["group"].apply(remove_lead)
 
@@ -272,15 +238,11 @@ with st.expander("Show works over time"):
     # group by date
     if multiple_check:
         st.write(works)
-<<<<<<< HEAD
-        works_g = works.groupby(['date', 'group']).agg({aggregation: 'sum'}).reset_index()
+        works_g = (
+            works.groupby(["date", "group"]).agg({aggregation: "sum"}).reset_index()
+        )
     else:
-        works_g = works.groupby('date').agg({aggregation: 'sum'}).reset_index()
-=======
-        works = works.groupby(["date", "group"]).agg({aggregation: "sum"}).reset_index()
-    else:
-        works = works.groupby("date").agg({aggregation: "sum"}).reset_index()
->>>>>>> 6d3944a22ee0ccce0ee122a3de0418a7a49a2318
+        works_g = works.groupby("date").agg({aggregation: "sum"}).reset_index()
 
     # plot
     title = f"Number of {aggregation} per {time_period} for {fandom}"
@@ -290,80 +252,8 @@ with st.expander("Show works over time"):
         )
 
     if multiple_check:
-<<<<<<< HEAD
-        fig = px.line(works_g, x="date", y=aggregation, title=title, line_group='group', color='group', markers=True)
-    else:
-        fig = px.line(works_g, x="date", y=aggregation, title=title)
-    st.plotly_chart(fig, use_container_width=True)
-
-with st.expander("Show tag co-occurrence"):
-    selected_tag = st.selectbox('Select tag', fandom_tags['tag'].unique())
-    selected_tag_id = fandom_tags[fandom_tags['tag'] == selected_tag].index[0]
-    # get all works with this tag
-    works_with_tag = works[works['fandom_tag_ids'].apply(lambda x: selected_tag_id in x)|works['computed_fandom_tag_ids'].apply(lambda x: selected_tag_id in x)]
-    # get all other tags
-    tag_occurrences = {}
-    general_tag_occurrences = {}
-    progress_bar = st.progress(0, text='Counting tag occurrences')
-    total_len = len(works_with_tag)
-    for j, row in works_with_tag.iterrows():
-        for tag in row['fandom_tag_ids']:
-            if tag != selected_tag_id:
-                if tag not in tag_occurrences:
-                    tag_occurrences[tag] = 0
-                tag_occurrences[tag] += 1
-        for tag in row['computed_fandom_tag_ids']:
-            if tag != selected_tag_id:
-                if tag not in tag_occurrences:
-                    tag_occurrences[tag] = 0
-                tag_occurrences[tag] += 1
-        for tag in row['general_tag_ids']:
-            if tag not in general_tag_occurrences:
-                general_tag_occurrences[tag] = 0
-            general_tag_occurrences[tag] += 1
-        for tag in row['computed_general_tag_ids']:
-            if tag not in general_tag_occurrences:
-                general_tag_occurrences[tag] = 0
-            general_tag_occurrences[tag] += 1
-        progress_bar.progress(j / total_len, text=f'Counting tag occurrences ({j:,}/{total_len:,})')
-    # divide by number of tag occurrences
-    scale_by_idf = st.checkbox('Scale by IDF', value=True)
-    if scale_by_idf:
-        for tag in tag_occurrences:
-            works_with_this_tag = works[works['fandom_tag_ids'].apply(lambda x: tag in x)|works['computed_fandom_tag_ids'].apply(lambda x: tag in x)]
-            idf = np.log(len(works) / len(works_with_this_tag))
-            tf = tag_occurrences[tag] / len(works_with_tag)
-            tag_occurrences[tag] = tf * idf
-        for tag in general_tag_occurrences:
-            works_with_this_tag = works[works['general_tag_ids'].apply(lambda x: tag in x)|works['computed_general_tag_ids'].apply(lambda x: tag in x)]
-            idf = np.log(len(works) / len(works_with_this_tag))
-            tf = general_tag_occurrences[tag] / len(works_with_tag)
-            general_tag_occurrences[tag] = tf * idf
-    # create dataframe
-    tag_occurrences = pd.DataFrame.from_dict(tag_occurrences, orient='index', columns=['value'])
-    tag_occurrences = tag_occurrences.sort_values('value', ascending=False)
-    general_tag_occurrences = pd.DataFrame.from_dict(general_tag_occurrences, orient='index', columns=['value'])
-    general_tag_occurrences = general_tag_occurrences.sort_values('value', ascending=False)
-    # add tag names
-    tag_occurrences['tag'] = tag_occurrences.index.map(lambda x: fandom_tags.loc[x]['tag'])
-    # use remove_lead function from above
-    tag_occurrences['tag'] = tag_occurrences['tag'].apply(remove_lead)
-    tag_occurrences['category'] = tag_occurrences.index.map(lambda x: fandom_tags.loc[x]['category'])
-    general_tag_occurrences['tag'] = general_tag_occurrences.index.map(lambda x: general_tags.loc[x]['tag'])
-    filter_out = st.multiselect('Filter out categories', tag_occurrences['category'].unique())
-    if len(filter_out) != 0:
-        tag_occurrences = tag_occurrences[~tag_occurrences['category'].isin(filter_out)]
-    
-    # plot
-    show_top = st.slider('Show top', 1, 100, 10)
-    fig = px.pie(tag_occurrences[:show_top], values='value', names='tag', title=f'Co-occurrence of {selected_tag} with fandom tags')
-    st.plotly_chart(fig, use_container_width=True)
-    fig = px.pie(general_tag_occurrences[:show_top], values='value', names='tag', title=f'Co-occurrence of {selected_tag} with general tags')
-    st.plotly_chart(fig, use_container_width=True)
-=======
-        st.write(works)
         fig = px.line(
-            works,
+            works_g,
             x="date",
             y=aggregation,
             title=title,
@@ -372,6 +262,105 @@ with st.expander("Show tag co-occurrence"):
             markers=True,
         )
     else:
-        fig = px.line(works, x="date", y=aggregation, title=title)
+        fig = px.line(works_g, x="date", y=aggregation, title=title)
     st.plotly_chart(fig, use_container_width=True)
->>>>>>> 6d3944a22ee0ccce0ee122a3de0418a7a49a2318
+
+with st.expander("Show tag co-occurrence"):
+    selected_tag = st.selectbox("Select tag", fandom_tags["tag"].unique())
+    selected_tag_id = fandom_tags[fandom_tags["tag"] == selected_tag].index[0]
+    # get all works with this tag
+    works_with_tag = works[
+        works["fandom_tag_ids"].apply(lambda x: selected_tag_id in x)
+        | works["computed_fandom_tag_ids"].apply(lambda x: selected_tag_id in x)
+    ]
+    # get all other tags
+    tag_occurrences = {}
+    general_tag_occurrences = {}
+    progress_bar = st.progress(0, text="Counting tag occurrences")
+    total_len = len(works_with_tag)
+    for j, row in works_with_tag.iterrows():
+        for tag in row["fandom_tag_ids"]:
+            if tag != selected_tag_id:
+                if tag not in tag_occurrences:
+                    tag_occurrences[tag] = 0
+                tag_occurrences[tag] += 1
+        for tag in row["computed_fandom_tag_ids"]:
+            if tag != selected_tag_id:
+                if tag not in tag_occurrences:
+                    tag_occurrences[tag] = 0
+                tag_occurrences[tag] += 1
+        for tag in row["general_tag_ids"]:
+            if tag not in general_tag_occurrences:
+                general_tag_occurrences[tag] = 0
+            general_tag_occurrences[tag] += 1
+        for tag in row["computed_general_tag_ids"]:
+            if tag not in general_tag_occurrences:
+                general_tag_occurrences[tag] = 0
+            general_tag_occurrences[tag] += 1
+        progress_bar.progress(
+            j / total_len, text=f"Counting tag occurrences ({j:,}/{total_len:,})"
+        )
+    # divide by number of tag occurrences
+    scale_by_idf = st.checkbox("Scale by IDF", value=True)
+    if scale_by_idf:
+        for tag in tag_occurrences:
+            works_with_this_tag = works[
+                works["fandom_tag_ids"].apply(lambda x: tag in x)
+                | works["computed_fandom_tag_ids"].apply(lambda x: tag in x)
+            ]
+            idf = np.log(len(works) / len(works_with_this_tag))
+            tf = tag_occurrences[tag] / len(works_with_tag)
+            tag_occurrences[tag] = tf * idf
+        for tag in general_tag_occurrences:
+            works_with_this_tag = works[
+                works["general_tag_ids"].apply(lambda x: tag in x)
+                | works["computed_general_tag_ids"].apply(lambda x: tag in x)
+            ]
+            idf = np.log(len(works) / len(works_with_this_tag))
+            tf = general_tag_occurrences[tag] / len(works_with_tag)
+            general_tag_occurrences[tag] = tf * idf
+    # create dataframe
+    tag_occurrences = pd.DataFrame.from_dict(
+        tag_occurrences, orient="index", columns=["value"]
+    )
+    tag_occurrences = tag_occurrences.sort_values("value", ascending=False)
+    general_tag_occurrences = pd.DataFrame.from_dict(
+        general_tag_occurrences, orient="index", columns=["value"]
+    )
+    general_tag_occurrences = general_tag_occurrences.sort_values(
+        "value", ascending=False
+    )
+    # add tag names
+    tag_occurrences["tag"] = tag_occurrences.index.map(
+        lambda x: fandom_tags.loc[x]["tag"]
+    )
+    # use remove_lead function from above
+    tag_occurrences["tag"] = tag_occurrences["tag"].apply(remove_lead)
+    tag_occurrences["category"] = tag_occurrences.index.map(
+        lambda x: fandom_tags.loc[x]["category"]
+    )
+    general_tag_occurrences["tag"] = general_tag_occurrences.index.map(
+        lambda x: general_tags.loc[x]["tag"]
+    )
+    filter_out = st.multiselect(
+        "Filter out categories", tag_occurrences["category"].unique()
+    )
+    if len(filter_out) != 0:
+        tag_occurrences = tag_occurrences[~tag_occurrences["category"].isin(filter_out)]
+
+    # plot
+    show_top = st.slider("Show top", 1, 100, 10)
+    fig = px.pie(
+        tag_occurrences[:show_top],
+        values="value",
+        names="tag",
+        title=f"Co-occurrence of {selected_tag} with fandom tags",
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    fig = px.pie(
+        general_tag_occurrences[:show_top],
+        values="value",
+        names="tag",
+        title=f"Co-occurrence of {selected_tag} with general tags",
+    )
+    st.plotly_chart(fig, use_container_width=True)
