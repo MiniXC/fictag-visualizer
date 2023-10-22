@@ -1,0 +1,4 @@
+gcsfs==2023.9.2
+pandas==2.0.3
+plotly==5.17.0
+st-files-connection==0.1.0
