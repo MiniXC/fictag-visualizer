@@ -27,7 +27,7 @@ def str_to_id_list(s):
 # load data
 # @st.cache_data
 def load_data():
-    df = conn.read("fictag-dataset/canonical_fandoms.csv", input_format="csv", ttl=600)
+    df = conn.read("fictag-dataset/canonical_fandoms.csv", input_format="csv")
     # only keep the top 700 fandoms
     df = df.head(700)
     return df
@@ -35,15 +35,13 @@ def load_data():
 
 # @st.cache_data
 def load_general_tags():
-    df = conn.read("fictag-dataset/tags/_general_tags.csv", input_format="csv", ttl=600)
+    df = conn.read("fictag-dataset/tags/_general_tags.csv", input_format="csv")
     return df
 
 
 # @st.cache_data
 def load_fandom_tags(fandom_id):
-    df = conn.read(
-        f"fictag-dataset/tags/{fandom_id}/tags.csv", input_format="csv", ttl=600
-    )
+    df = conn.read(f"fictag-dataset/tags/{fandom_id}/tags.csv", input_format="csv")
     return df
 
 
@@ -54,7 +52,7 @@ def load_works(fandom_id):
     dfs = []
     for y in range(2008, 2023):
         try:
-            y_df = conn.read(f"{work_path}/{y}.csv", input_format="csv", ttl=600)
+            y_df = conn.read(f"{work_path}/{y}.csv", input_format="csv")
             dfs.append(y_df)
         except:
             print(f"Could not load {work_path}/{y}.csv")
@@ -158,17 +156,17 @@ with st.expander("Filter by tags"):
         multiple_check = st.checkbox("Show multiple tags")
         if multiple_check:
             # means multiple lines in the plot
-            general_str = works["general_tag_ids"].apply(
-                lambda x: " + ".join(
-                    sorted(
-                        [
-                            general_tags.loc[tag]["tag"]
-                            for tag in x
-                            if tag in general_tag_ids
-                        ]
-                    )
-                )
-            )
+            # general_str = works["general_tag_ids"].apply(
+            #     lambda x: " + ".join(
+            #         sorted(
+            #             [
+            #                 general_tags.loc[tag]["tag"]
+            #                 for tag in x
+            #                 if tag in general_tag_ids
+            #             ]
+            #         )
+            #     )
+            # )
             fandom_str = works["fandom_tag_ids"].apply(
                 lambda x: " + ".join(
                     sorted(
@@ -180,7 +178,9 @@ with st.expander("Filter by tags"):
                     )
                 )
             )
-            works["group"] = general_str + " + " + fandom_str
+            # works["group"] = general_str + " + " + fandom_str
+            works["group"] = fandom_str
+            print(works["group"].unique())
             remove_fandom = st.checkbox("Remove fandom from group", value=True)
 
             def remove_lead(x):
@@ -271,20 +271,15 @@ with st.expander("Show tag co-occurrence"):
     # get all works with this tag
     works_with_tag = works[
         works["fandom_tag_ids"].apply(lambda x: selected_tag_id in x)
-        | works["computed_fandom_tag_ids"].apply(lambda x: selected_tag_id in x)
     ]
     # get all other tags
     tag_occurrences = {}
     general_tag_occurrences = {}
     progress_bar = st.progress(0, text="Counting tag occurrences")
     total_len = len(works_with_tag)
+    count = 0
     for j, row in works_with_tag.iterrows():
         for tag in row["fandom_tag_ids"]:
-            if tag != selected_tag_id:
-                if tag not in tag_occurrences:
-                    tag_occurrences[tag] = 0
-                tag_occurrences[tag] += 1
-        for tag in row["computed_fandom_tag_ids"]:
             if tag != selected_tag_id:
                 if tag not in tag_occurrences:
                     tag_occurrences[tag] = 0
@@ -293,12 +288,10 @@ with st.expander("Show tag co-occurrence"):
             if tag not in general_tag_occurrences:
                 general_tag_occurrences[tag] = 0
             general_tag_occurrences[tag] += 1
-        for tag in row["computed_general_tag_ids"]:
-            if tag not in general_tag_occurrences:
-                general_tag_occurrences[tag] = 0
-            general_tag_occurrences[tag] += 1
+        count += 1
         progress_bar.progress(
-            j / total_len, text=f"Counting tag occurrences ({j:,}/{total_len:,})"
+            count / total_len,
+            text=f"Counting tag occurrences ({count:,}/{total_len:,})",
         )
     # divide by number of tag occurrences
     scale_by_idf = st.checkbox("Scale by IDF", value=True)
@@ -306,7 +299,6 @@ with st.expander("Show tag co-occurrence"):
         for tag in tag_occurrences:
             works_with_this_tag = works[
                 works["fandom_tag_ids"].apply(lambda x: tag in x)
-                | works["computed_fandom_tag_ids"].apply(lambda x: tag in x)
             ]
             idf = np.log(len(works) / len(works_with_this_tag))
             tf = tag_occurrences[tag] / len(works_with_tag)
@@ -314,7 +306,6 @@ with st.expander("Show tag co-occurrence"):
         for tag in general_tag_occurrences:
             works_with_this_tag = works[
                 works["general_tag_ids"].apply(lambda x: tag in x)
-                | works["computed_general_tag_ids"].apply(lambda x: tag in x)
             ]
             idf = np.log(len(works) / len(works_with_this_tag))
             tf = general_tag_occurrences[tag] / len(works_with_tag)
