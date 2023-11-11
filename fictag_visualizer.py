@@ -230,7 +230,7 @@ if enough_works:
                 ["count", "words", "kudos", "comments", "bookmarks", "hits"],
             )
             # select time period
-            time_period = st.selectbox("Select time period", ["day", "month", "year"])
+            time_period = st.selectbox("Select time period", ["day", "month", "year"], index="month")
         
             # convert to datetime
             works["date"] = pd.to_datetime(works["date"])
@@ -269,6 +269,7 @@ if enough_works:
                 works_g["date"]=dates
                 works_g["group"]=groups_list
                 works_g[aggregation]=counts
+                works_g = works_g.sort_values("date")
             else:
                 works_g = works.groupby("date").agg({aggregation: "sum"}).reset_index()
         
