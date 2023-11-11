@@ -29,7 +29,7 @@ def str_to_id_list(s):
 def load_data():
     df = conn.read("fictag-dataset/canonical_fandoms.csv", input_format="csv")
     # only keep the top 700 fandoms
-    df = df.head(700)
+    df = df.head(5000)
     return df
 
 
