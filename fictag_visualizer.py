@@ -258,20 +258,18 @@ if enough_works:
                 #     works.groupby(["date", "group"]).agg({aggregation: "sum"}).reset_index()
                 # )
                 dates = []
-                groups = []
+                groups_list = []
                 counts = []
                 for d in works["date"].unique():
-                    print(d, groups)
                     for g in groups:
                         c = np.sum(works[(works["date"]==d)&(works["group"].str.contains(g))][aggregation])
                         dates.append(d)
-                        groups.append(g)
+                        groups_list.append(g)
                         counts.append(c)
                 works_g = pd.DataFrame()
                 works_g["date"]=dates
-                works_g["group"]=groups
+                works_g["group"]=groups_list
                 works_g[aggregation]=counts
-                print(works_g)
             else:
                 works_g = works.groupby("date").agg({aggregation: "sum"}).reset_index()
         
