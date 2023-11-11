@@ -230,7 +230,7 @@ if enough_works:
                 ["count", "words", "kudos", "comments", "bookmarks", "hits"],
             )
             # select time period
-            time_period = st.selectbox("Select time period", ["day", "month", "year"], index=1)
+            time_period = st.selectbox("Select time period", ["day", "month", "year"])
         
             # convert to datetime
             works["date"] = pd.to_datetime(works["date"])
