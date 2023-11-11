@@ -201,9 +201,15 @@ if enough_works:
                 works["group"] = works["group"].apply(remove_lead)
     
         st.write(f"There are **{len(works):,}** works that match the selected tags.")
+
+    mode = st.radio(
+        "Select analysis mode.",
+        [":rainbow[word distribution (histogram)]", ":rainbow[works over time (line chart)]", ":rainbow[tag co-occurence (pie chart)]"],
+        index=None,
+    )
     
     # plot
-    with st.expander("Show histogram of word counts"):
+    if "histogram" in mode:
         # remove outliers
         remove_outliers = st.checkbox("Remove outliers")
         if remove_outliers:
@@ -216,7 +222,7 @@ if enough_works:
         st.plotly_chart(fig, use_container_width=True)
     
     # plot over time
-    with st.expander("Show works over time"):
+    if "line chart" in mode:
         # select aggregation value (count, words, kudos, etc.)
         aggregation = st.selectbox(
             "Select aggregation",
@@ -244,7 +250,7 @@ if enough_works:
     
         # group by date
         if multiple_check:
-            st.write(works)
+            #st.write(works)
             works_g = (
                 works.groupby(["date", "group"]).agg({aggregation: "sum"}).reset_index()
             )
@@ -272,7 +278,7 @@ if enough_works:
             fig = px.line(works_g, x="date", y=aggregation, title=title)
         st.plotly_chart(fig, use_container_width=True)
     
-    with st.expander("Show tag co-occurrence"):
+    if "pie chart" in mode:
         selected_tag = st.selectbox("Select tag", fandom_tags["tag"].unique())
         selected_tag_id = fandom_tags[fandom_tags["tag"] == selected_tag].index[0]
         # get all works with this tag
