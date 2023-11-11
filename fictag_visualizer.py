@@ -256,11 +256,12 @@ if enough_works:
                 # works_g = (
                 #     works.groupby(["date", "group"]).agg({aggregation: "sum"}).reset_index()
                 # )
-                groups = works["group"].unique()
+                groups = [x for x in works["group"].unique() if len(x) > 0]
                 dates = []
                 groups = []
                 counts = []
                 for d in works["date"].unique():
+                    print(d, groups)
                     for g in groups:
                         c = np.sum(works[(works["date"]==d)&(works["group"].str.contains(g))][aggregation])
                         dates.append(d)
