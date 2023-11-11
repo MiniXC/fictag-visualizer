@@ -270,6 +270,7 @@ if enough_works:
                 works_g["date"]=dates
                 works_g["group"]=groups
                 works_g[aggregation]=counts
+                print(works_g)
             else:
                 works_g = works.groupby("date").agg({aggregation: "sum"}).reset_index()
         
