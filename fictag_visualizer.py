@@ -209,7 +209,7 @@ if enough_works:
     )
     
     # plot
-    if "histogram" in mode:
+    if mode is not None and "histogram" in mode:
         # remove outliers
         remove_outliers = st.checkbox("Remove outliers")
         if remove_outliers:
@@ -222,7 +222,7 @@ if enough_works:
         st.plotly_chart(fig, use_container_width=True)
     
     # plot over time
-    if "line chart" in mode:
+    if mode is not None and "line chart" in mode:
         # select aggregation value (count, words, kudos, etc.)
         aggregation = st.selectbox(
             "Select aggregation",
@@ -278,7 +278,7 @@ if enough_works:
             fig = px.line(works_g, x="date", y=aggregation, title=title)
         st.plotly_chart(fig, use_container_width=True)
     
-    if "pie chart" in mode:
+    if mode is not None and "pie chart" in mode:
         selected_tag = st.selectbox("Select tag", fandom_tags["tag"].unique())
         selected_tag_id = fandom_tags[fandom_tags["tag"] == selected_tag].index[0]
         # get all works with this tag
