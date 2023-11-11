@@ -27,7 +27,7 @@ def str_to_id_list(s):
 # load data
 # @st.cache_data
 def load_data():
-    df = conn.read("fictag-dataset/canonical_fandoms.csv", input_format="csv")
+    df = conn.read("fictag-dataset/canonical_fandoms.csv", input_format="csv", ttl="1d")
     # only keep the top 700 fandoms
     df = df.head(5000)
     return df
@@ -35,13 +35,13 @@ def load_data():
 
 # @st.cache_data
 def load_general_tags():
-    df = conn.read("fictag-dataset/tags/_general_tags.csv", input_format="csv")
+    df = conn.read("fictag-dataset/tags/_general_tags.csv", input_format="csv", ttl="1d")
     return df
 
 
 # @st.cache_data
 def load_fandom_tags(fandom_id):
-    df = conn.read(f"fictag-dataset/tags/{fandom_id}/tags.csv", input_format="csv")
+    df = conn.read(f"fictag-dataset/tags/{fandom_id}/tags.csv", input_format="csv", ttl="1d")
     return df
 
 
@@ -52,7 +52,7 @@ def load_works(fandom_id):
     dfs = []
     for y in range(2008, 2023):
         try:
-            y_df = conn.read(f"{work_path}/{y}.csv", input_format="csv")
+            y_df = conn.read(f"{work_path}/{y}.csv", input_format="csv", ttl="1d")
             dfs.append(y_df)
         except:
             print(f"Could not load {work_path}/{y}.csv")
