@@ -107,6 +107,7 @@ with st.spinner("Loading works..."):
         works = load_works(row["hash"].values[0])
     except ValueError:
         st.error('Not enough fanfictions to analyse for this fandom, please select a different one.', icon="🚨")
+        return
 
 multiple_check = False
 
