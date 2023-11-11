@@ -187,8 +187,6 @@ if enough_works:
                 )
                 # works["group"] = general_str + " + " + fandom_str
                 works["group"] = fandom_str
-                groups = [x for x in works["group"].unique() if len(x) > 0]
-                print(groups)
                 remove_fandom = st.checkbox("Remove fandom from group", value=True)
     
                 def remove_lead(x):
@@ -257,12 +255,13 @@ if enough_works:
                 # works_g = (
                 #     works.groupby(["date", "group"]).agg({aggregation: "sum"}).reset_index()
                 # )
+                groups = [x for x in works["group"].unique() if len(x) > 0]
                 dates = []
                 groups_list = []
                 counts = []
                 for d in works["date"].unique():
                     for g in groups:
-                        c = np.sum(works[(works["date"]==d)&(works["group"].str.contains(g))][aggregation])
+                        c = np.sum(works[(works["date"]==d)&((works["group"].str.contains(g))|(works["group"]==g))][aggregation])
                         dates.append(d)
                         groups_list.append(g)
                         counts.append(c)
